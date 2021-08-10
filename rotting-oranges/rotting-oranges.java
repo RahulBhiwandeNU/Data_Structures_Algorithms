@@ -1,56 +1,52 @@
 class Solution {
     public int orangesRotting(int[][] grid) {
-        Queue<Pair<Integer, Integer>> queue = new ArrayDeque();
-
-        // Step 1). build the initial set of rotten oranges
-        int freshOranges = 0;
-        int ROWS = grid.length, COLS = grid[0].length;
-
-        for (int r = 0; r < ROWS; ++r)
-            for (int c = 0; c < COLS; ++c)
-                if (grid[r][c] == 2)
-                    queue.offer(new Pair(r, c));
-                else if (grid[r][c] == 1)
-                    freshOranges++;
-
-        // Mark the round / level, _i.e_ the ticker of timestamp
-        queue.offer(new Pair(-1, -1));
-
-        // Step 2). start the rotting process via BFS
-        int minutesElapsed = -1;
-        int[][] directions = { {-1, 0}, {0, 1}, {1, 0}, {0, -1}};
-
-        while (!queue.isEmpty()) {
-            Pair<Integer, Integer> p = queue.poll();
-            int row = p.getKey();
-            int col = p.getValue();
-            if (row == -1) {
-                // We finish one round of processing
-                minutesElapsed++;
-                // to avoid the endless loop
-                if (!queue.isEmpty())
-                    queue.offer(new Pair(-1, -1));
-            } else {
-                // this is a rotten orange
-                // then it would contaminate its neighbors
-                for (int[] d : directions) {
-                    int neighborRow = row + d[0];
-                    int neighborCol = col + d[1];
-                    if (neighborRow >= 0 && neighborRow < ROWS && 
-                        neighborCol >= 0 && neighborCol < COLS) {
-                        if (grid[neighborRow][neighborCol] == 1) {
-                            // this orange would be contaminated
-                            grid[neighborRow][neighborCol] = 2;
-                            freshOranges--;
-                            // this orange would then contaminate other oranges
-                            queue.offer(new Pair(neighborRow, neighborCol));
-                        }
-                    }
-                }
+        Queue<int[]> queue = new LinkedList<>();
+        int row = grid.length;
+        int col = grid[0].length;
+        
+        for(int i = 0 ; i < row ; i++){
+            for(int j = 0 ; j < col ; j++){
+                if(grid[i][j] == 2)
+                    queue.add(new int[]{i,j,0});
             }
         }
-
-        // return elapsed minutes if no fresh orange left
-        return freshOranges == 0 ? minutesElapsed : -1;
+        
+        int level = 0;
+        while(!queue.isEmpty()){
+            int[] curr = queue.poll();
+            
+            int currRow = curr[0];
+            int currCol = curr[1];
+            int currLevel = curr[2];
+            
+            if(currRow - 1 >= 0 && shouldVisit(grid,currRow - 1,currCol))
+                queue.add(new int[]{currRow-1,currCol,currLevel+1});
+            if(currCol - 1 >= 0 && shouldVisit(grid,currRow,currCol-1))
+                queue.add(new int[]{currRow,currCol-1,currLevel+1});
+            if(currCol + 1 < grid[0].length && shouldVisit(grid,currRow,currCol+1))
+                queue.add(new int[]{currRow,currCol+1,currLevel+1});
+            if(currRow + 1 < grid.length && shouldVisit(grid,currRow+1,currCol))
+                queue.add(new int[]{currRow+1,currCol,currLevel+1});
+            
+            level = (level < currLevel) ? currLevel : level;
+        }
+        
+        for(int i = 0 ; i < row ; i++){
+            for(int j = 0 ; j < col ; j++){
+                if(grid[i][j] == 1)
+                    return -1;
+            }
+        }
+        
+        return level;
+        
+    }
+    
+    public boolean shouldVisit(int[][] grid, int row, int col){
+        if(grid[row][col] == 1){
+            grid[row][col] = 2;
+            return true;
+        }
+        return false;    
     }
 }
