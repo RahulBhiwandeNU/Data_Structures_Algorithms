@@ -1,83 +1,67 @@
-class DisjointSet {
-    private int[] weights; // Used to store weights of each nodes 
-    private int[] parents;
-
-    public void Union(int a, int b) {
-        int rootA = Find(a);
-        int rootB = Find(b);
-        // If both a and b have same root, i.e. they both belong to the same set, hence we don't need to take union
-        if (rootA == rootB) return;
-
-        // Weighted union
-        if (this.weights[rootA] > this.weights[rootB]) {
-            // In case rootA is having more weight
-            // 1. Make rootA as the parent of rootB
-            // 2. Increment the weight of rootA by rootB's weight
-            this.parents[rootB] = rootA;
-            this.weights[rootA] += this.weights[rootB];
-        } else {
-            // Otherwise
-            // 1. Make rootB as the parent of rootA
-            // 2. Increment the weight of rootB by rootA's weight
-            this.parents[rootA] = rootB;
-            this.weights[rootB] += this.weights[rootA];
+class UF_WPCR {
+    private int[] root;
+    private int[] rank;
+    private HashSet<Integer> set;
+    
+    public UF_WPCR(int size){
+        root = new int[size+1];
+        rank = new int[size+1];
+        set = new HashSet<>();
+        for(int i = 1 ; i <= size ; i++){
+            root[i] = i;
+            rank[i] = 1;
         }
     }
-
-    public int Find(int a) {
-        // Traverse all the way to the top (root) going through the parent nodes
-        while (a != this.parents[a]) {
-            // Path compression
-            // a's grandparent is now a's parent
-            this.parents[a] = this.parents[parents[a]];
-            a = this.parents[a];
-        }
-        return a;
+    
+    public int find(int x){
+        if(x == root[x])
+            return x;
+        return root[x] = find(root[x]);
     }
-
-    public boolean isInSameGroup(int a, int b) {
-        // Return true if both a and b belong to the same set, otherwise return false
-        return Find(a) == Find(b);
-    }
-
-    // Initialize weight for each node to be 1
-    public DisjointSet(int N) {
-        this.parents = new int[N + 1];
-        this.weights = new int[N + 1];
-        // Set the initial parent node to itself
-        for (int i = 1; i <= N; ++i) {
-            this.parents[i] = i;
-            this.weights[i] = 1;
+    
+    public void union(int x , int y){
+        int rootX = find(x);
+        int rootY = find(y);
+        
+        if(rootX != rootY){
+            if(rank[rootX] > rank[rootY])
+                root[rootY] = rootX;
+            else if(rank[rootX] < rank[rootY])
+                root[rootX] = rootY;
+            else {
+                root[rootX] = rootY;
+                rank[rootY] += 1;
+            }
         }
+    }
+    
+    public int connected(){
+        for(int i = 1; i < root.length; i++) {
+            int x = find(root[i]);
+            set.add(x);
+        }
+        return set.size();
+    }
+    
+    public boolean isConnected(int x , int y){
+        return find(x) == find(y);
     }
 }
 
 class Solution {
     public int minimumCost(int N, int[][] connections) {
-        DisjointSet disjointset = new DisjointSet(N);
-        // Sort connections based on their weights (in increasing order)
+        UF_WPCR uf = new UF_WPCR(N);
         Arrays.sort(connections, (a, b) -> a[2] - b[2]);
-        // Keep track of total edges added in the MST
-        int total = 0;
-        // Keep track of the total cost of adding all those edges
         int cost = 0;
-        for (int i = 0; i < connections.length; ++i) {
-            int a = connections[i][0];
-            int b = connections[i][1];
-            // Do not add the edge from a to b if it is already connected
-            if (disjointset.isInSameGroup(a, b)) continue;
-            // If a and b are not connected, take union
-            disjointset.Union(a, b);
-            // increment cost
+        for(int i = 0 ; i < connections.length ; ++i){
+            if(uf.isConnected(connections[i][0],connections[i][1]))
+                continue;
+            uf.union(connections[i][0],connections[i][1]);
             cost += connections[i][2];
-            // increment number of edges added in the MST
-            total++;
         }
-        // If all N nodes are connected, the MST will have a total of N - 1 edges
-        if (total == N - 1) {
-            return cost;
-        } else {
+        
+        if(uf.connected() > 1)
             return -1;
-        }
+        return cost;   
     }
 }
